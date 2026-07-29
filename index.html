@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lacoste · Guided Styling — Prototype</title>
+<style>
+  :root{
+    --ink:#1D1D1F; --sub:#6E6E73; --hair:#E5E5EA; --bg:#FFFFFF; --grey:#F5F5F7;
+    --green:#0B6E4F; --green-d:#095A41; --mint:#E7F1EC; --tint:#0B6E4F;
+    --r-card:18px; --r-tile:16px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:var(--font); color:var(--ink);
+    background:radial-gradient(120% 120% at 50% 0%, #EFEFF2 0%, #E4E4E8 60%, #DADADE 100%);
+    display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px;
+  }
+  .stage{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .caption{font-size:12.5px; color:#8A8A8E; letter-spacing:.02em;}
+  .caption b{color:#5b5b60;}
+
+  /* ---------- device ---------- */
+  .phone{
+    position:relative; width:390px; height:844px; border-radius:52px;
+    background:#000; padding:11px;
+    box-shadow:0 2px 6px rgba(0,0,0,.18), 0 30px 60px rgba(0,0,0,.34), inset 0 0 0 2px #3a3a3c;
+  }
+  .screen{position:relative; width:100%; height:100%; border-radius:42px; overflow:hidden; background:var(--bg);}
+  .island{position:absolute; top:11px; left:50%; transform:translateX(-50%); width:118px; height:34px; background:#000; border-radius:20px; z-index:60;}
+  .statusbar{position:absolute; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:18px 30px 0; font-size:14px; font-weight:600; z-index:55; pointer-events:none;}
+  .statusbar .r{display:flex; align-items:center; gap:6px;}
+  .statusbar svg{display:block;}
+
+  /* ---------- screens ---------- */
+  .view{position:absolute; inset:0; display:none; flex-direction:column; background:var(--bg);}
+  .view.active{display:flex; animation:enter .34s cubic-bezier(.22,.61,.36,1);}
+  @keyframes enter{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  .content{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:54px;}
+  .content.tabpad{padding-bottom:86px;}
+  .content::-webkit-scrollbar{display:none;}
+
+  /* nav bar */
+  .nav{position:absolute; top:0; left:0; right:0; height:98px; padding:54px 12px 0; display:flex; align-items:center; justify-content:space-between; z-index:50;
+       background:linear-gradient(#fff 62%, rgba(255,255,255,0)); }
+  .nav.solid{background:rgba(255,255,255,.82); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:.5px solid var(--hair); height:92px;}
+  .nav .title{font-size:17px; font-weight:600;}
+  .nav:not(.solid){pointer-events:none;}
+  .nav:not(.solid) .navbtn{pointer-events:auto;}
+  .navbtn{display:flex; align-items:center; gap:2px; color:var(--green); font-size:16px; font-weight:400; background:none; border:0; padding:8px; min-width:44px; min-height:44px; cursor:pointer;}
+  .navbtn.right{justify-content:flex-end;}
+  .navbtn.icon{color:var(--ink);}
+
+  /* typography */
+  .h1{font-size:32px; font-weight:700; letter-spacing:-.02em; margin:8px 20px 2px;}
+  .lead{font-size:16px; color:var(--sub); margin:0 20px 14px;}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:.10em; text-transform:uppercase; color:var(--sub); margin:22px 20px 8px;}
+  .sec-title{font-size:22px; font-weight:700; letter-spacing:-.01em; margin:20px 20px 10px;}
+
+  /* buttons */
+  .btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; border:0; cursor:pointer;
+       font-family:var(--font); font-size:17px; font-weight:600; border-radius:14px; min-height:52px; padding:0 18px; transition:transform .12s ease, opacity .12s;}
+  .btn:active{transform:scale(.975); opacity:.9;}
+  .btn.primary{background:var(--green); color:#fff;}
+  .btn.tinted{background:var(--mint); color:var(--green-d);}
+  .btn.ghost{background:transparent; color:var(--green); font-weight:500; min-height:44px;}
+  .btn:focus-visible{outline:3px solid rgba(11,110,79,.4); outline-offset:2px;}
+
+  /* home */
+  .greet{font-size:15px; color:var(--sub); margin:10px 20px 0;}
+  .searchbar{margin:12px 20px 4px; height:40px; background:var(--grey); border-radius:12px; display:flex; align-items:center; gap:8px; padding:0 12px; color:#8A8A8E; font-size:16px;}
+  .hero{margin:14px 20px 4px; height:190px; border-radius:var(--r-card); background:linear-gradient(150deg,#0B6E4F,#0d5c44 70%); color:#fff; padding:20px; display:flex; flex-direction:column; justify-content:flex-end; position:relative; overflow:hidden;}
+  .hero .k{font-size:12px; font-weight:700; letter-spacing:.10em; opacity:.85;}
+  .hero .t{font-size:25px; font-weight:700; letter-spacing:-.01em; margin-top:2px; max-width:78%;}
+  .hero .croc{position:absolute; right:-14px; top:-18px; opacity:.16; transform:rotate(8deg);}
+
+  /* AI stylist entry card */
+  .ai-wrap{position:relative; margin:16px 20px 6px;}
+  .ai-glow{position:absolute; inset:-3px; border-radius:22px; background:linear-gradient(115deg,#0B6E4F,#5FB8A0,#7E8BEA,#E58EA8,#E7B86A); filter:blur(11px); opacity:.34; z-index:0; animation:hue 9s linear infinite;}
+  @keyframes hue{to{filter:blur(11px) hue-rotate(360deg);}}
+  .ai-card{position:relative; z-index:1; background:#fff; border:.5px solid var(--hair); border-radius:20px; padding:18px; display:flex; gap:14px; align-items:center; cursor:pointer;}
+  .ai-card:active{transform:scale(.99);}
+  .ai-badge{flex:0 0 auto; width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,#0B6E4F,#128f66); display:flex; align-items:center; justify-content:center;}
+  .ai-card .tt{font-size:17px; font-weight:650;}
+  .ai-card .ss{font-size:13.5px; color:var(--sub); margin-top:2px; line-height:1.32;}
+  .chev{color:#C4C4C8; flex:0 0 auto;}
+
+  /* category row */
+  .cats{display:flex; gap:12px; overflow-x:auto; padding:4px 20px 6px; scrollbar-width:none;}
+  .cats::-webkit-scrollbar{display:none;}
+  .cat{flex:0 0 auto; width:96px;}
+  .cat .sw{height:96px; border-radius:14px; background:var(--grey); display:flex; align-items:center; justify-content:center;}
+  .cat .lb{font-size:13px; margin-top:6px; text-align:center; color:var(--ink);}
+
+  /* product grid */
+  .filterline{display:flex; align-items:center; justify-content:space-between; margin:2px 20px 8px; color:var(--sub); font-size:14px;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:0 20px 8px;}
+  .tile{background:var(--grey); border-radius:var(--r-tile); overflow:hidden; cursor:pointer; border:.5px solid rgba(0,0,0,.02);}
+  .tile:active{transform:scale(.985);}
+  .tile .img{height:150px; display:flex; align-items:center; justify-content:center; position:relative;}
+  .tile .meta{padding:8px 10px 12px; background:#fff;}
+  .tile .nm{font-size:13.5px; font-weight:550; line-height:1.25;}
+  .tile .pr{font-size:13px; color:var(--sub); margin-top:2px;}
+
+  /* sticky style-me */
+  .sticky{position:absolute; left:0; right:0; bottom:0; padding:12px 20px calc(12px + env(safe-area-inset-bottom)); background:linear-gradient(rgba(255,255,255,0),#fff 34%); z-index:40;}
+
+  /* pdp */
+  .pdp-img{height:360px; background:var(--grey); display:flex; align-items:center; justify-content:center; position:relative;}
+  .swatches{display:flex; gap:10px; margin:16px 20px 0;}
+  .swatch{width:30px; height:30px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--hair); cursor:pointer;}
+  .swatch.on{box-shadow:0 0 0 2px var(--green);}
+  .sizes{display:flex; gap:10px; margin:14px 20px 0; flex-wrap:wrap;}
+  .size{min-width:46px; height:44px; padding:0 4px; border-radius:12px; border:1px solid var(--hair); background:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;}
+  .size.on{border-color:var(--green); background:var(--mint); color:var(--green-d); font-weight:600;}
+  .row{display:flex; align-items:baseline; justify-content:space-between; margin:18px 20px 0;}
+  .row .nm{font-size:22px; font-weight:700; letter-spacing:-.01em;}
+  .row .pr{font-size:19px; font-weight:600;}
+  .muted{color:var(--sub); font-size:14.5px; margin:6px 20px 0; line-height:1.4;}
+
+  .complete{margin:20px; border-radius:20px; border:.5px solid var(--hair); background:var(--grey); padding:16px 16px; display:flex; gap:14px; align-items:center; cursor:pointer;}
+  .complete .ai-badge{width:42px;height:42px;border-radius:12px;}
+  .complete:active{transform:scale(.99);}
+
+  /* brief */
+  .brief-h{font-size:28px; font-weight:700; letter-spacing:-.02em; margin:6px 20px 2px;}
+  .brief-sub{font-size:15.5px; color:var(--sub); margin:0 20px 6px;}
+  .group{margin:20px 20px 0;}
+  .group .gl{font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); margin-bottom:10px;}
+  .chips{display:flex; flex-wrap:wrap; gap:10px;}
+  .chip{padding:10px 15px; border-radius:20px; border:1px solid var(--hair); background:#fff; font-size:15px; cursor:pointer; transition:transform .1s;}
+  .chip:active{transform:scale(.96);}
+  .chip.on{background:var(--green); color:#fff; border-color:var(--green);}
+  .privacy{display:flex; gap:8px; align-items:flex-start; margin:22px 20px 0; color:var(--sub); font-size:12.5px; line-height:1.4;}
+
+  /* looks */
+  .ctx{display:flex; gap:8px; flex-wrap:wrap; margin:4px 20px 4px;}
+  .pill{font-size:12.5px; padding:6px 11px; border-radius:20px; background:var(--mint); color:var(--green-d); font-weight:600;}
+  .pill.stock{background:var(--grey); color:#4b4b50; font-weight:500;}
+  .lookcard{margin:14px 20px 0; border:.5px solid var(--hair); border-radius:20px; overflow:hidden; cursor:pointer; background:#fff;}
+  .lookcard:active{transform:scale(.992);}
+  .lookcard .top{display:flex; gap:14px; padding:16px; align-items:center;}
+  .flatlay{flex:0 0 auto; width:96px; height:120px; background:var(--grey); border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:8px 0;}
+  .lookcard .info .nm{font-size:18px; font-weight:700; letter-spacing:-.01em;}
+  .lookcard .info .why{font-size:13.5px; color:var(--sub); margin-top:3px; line-height:1.35;}
+  .lookcard .info .pcs{font-size:12.5px; color:#4b4b50; margin-top:8px; line-height:1.5;}
+  .lookcard .bar{border-top:.5px solid var(--hair); display:flex; align-items:center; justify-content:space-between; padding:12px 16px;}
+  .lookcard .bar .tot{font-size:15px; font-weight:600;}
+  .mini{font-size:12px; color:var(--green); font-weight:600;}
+
+  /* look detail */
+  .stage-img{height:320px; background:var(--grey); display:flex; align-items:center; justify-content:center;}
+  .pieces{margin:8px 20px 0;}
+  .piece{display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:.5px solid var(--hair);}
+  .piece .th{width:44px; height:52px; border-radius:9px; background:var(--grey); display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+  .piece .pn{font-size:15px; font-weight:550;}
+  .piece .pt{font-size:12.5px; color:var(--green); margin-top:2px;}
+  .piece .pp{margin-left:auto; font-size:15px; font-weight:600;}
+  .refine{margin:18px 20px 0;}
+  .refine .rl{font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); margin-bottom:10px;}
+  .totrow{display:flex; align-items:baseline; justify-content:space-between; margin:18px 20px 6px;}
+  .totrow .l{font-size:14px; color:var(--sub);} .totrow .v{font-size:20px; font-weight:700;}
+
+  /* bag */
+  .bag-hero{margin:8px 20px 0; text-align:center; padding:22px 0 6px;}
+  .bag-hero .tick{width:56px;height:56px;border-radius:50%;background:var(--mint);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+  .bag-hero .t{font-size:22px; font-weight:700;} .bag-hero .s{font-size:15px; color:var(--sub); margin-top:4px;}
+
+  .actions{padding:14px 20px calc(16px + env(safe-area-inset-bottom));}
+  .actions .btn+.btn{margin-top:10px;}
+
+  /* tab bar */
+  .tabbar{position:absolute; left:0; right:0; bottom:0; height:82px; padding:8px 8px calc(20px); display:flex; z-index:45;
+          background:rgba(255,255,255,.86); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); border-top:.5px solid var(--hair);}
+  .tab{flex:1; background:none; border:0; display:flex; flex-direction:column; align-items:center; gap:3px; color:#9A9A9F; font-size:10.5px; font-weight:500; cursor:pointer; padding-top:6px;}
+  .tab.on{color:var(--green);}
+  .home-ind{position:absolute; left:50%; transform:translateX(-50%); bottom:8px; width:134px; height:5px; border-radius:3px; background:#111; opacity:.85; z-index:70; pointer-events:none;}
+
+  .rm{margin-left:10px; width:28px; height:28px; border-radius:50%; border:0; background:var(--grey); color:#9A9A9F; font-size:19px; line-height:1; cursor:pointer; flex:0 0 auto;}
+  .rm:active{transform:scale(.9);}
+  .altgrp{margin:16px 0 0;}
+  .altgrp .rl{margin:0 20px 8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--sub);}
+  .altscroll{display:flex; gap:12px; overflow-x:auto; padding:0 20px 4px; scrollbar-width:none;}
+  .altscroll::-webkit-scrollbar{display:none;}
+  .alt{flex:0 0 auto; width:94px; cursor:pointer; border:1px solid var(--hair); border-radius:14px; padding:8px 8px 10px; text-align:center; background:#fff; transition:transform .1s;}
+  .alt.on{border-color:var(--green); background:var(--mint);}
+  .alt:active{transform:scale(.97);}
+  .altimg{height:54px; display:flex; align-items:center; justify-content:center;}
+  .altnm{font-size:11.5px; margin-top:5px; line-height:1.2;}
+  .altpr{font-size:11px; color:var(--sub); margin-top:2px;}
+  .fab{position:absolute; right:18px; bottom:100px; width:60px; height:60px; border:0; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:44; box-shadow:0 10px 22px rgba(11,110,79,.42);}
+  .fab:active{transform:scale(.94);}
+  .fab .ring{position:absolute; inset:-4px; border-radius:50%; background:linear-gradient(115deg,#0B6E4F,#5FB8A0,#7E8BEA,#E58EA8,#E7B86A); filter:blur(7px); opacity:.55; z-index:-1; animation:hue 8s linear infinite;}
+  .sparkle{position:absolute; top:8px; right:8px; width:30px; height:30px; border:0; border-radius:50%; background:rgba(255,255,255,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); color:var(--green); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 7px rgba(0,0,0,.14); z-index:6;}
+  .sparkle:active{transform:scale(.9);}
+  .sparkle.lg{width:46px; height:46px; top:14px; right:14px; box-shadow:0 4px 12px rgba(0,0,0,.16);}
+  .sparkle.lg svg{width:22px; height:22px;}
+  .sizerow{display:flex; align-items:center; justify-content:space-between; margin:16px 20px 0; padding:12px 16px; background:var(--grey); border-radius:14px;}
+  .sizerow .sl{font-size:15px; font-weight:600;}
+  .sizesel{font-family:var(--font); font-size:15px; font-weight:600; color:var(--green); border:0; background:transparent; padding:6px 6px; cursor:pointer;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="statusbar">
+        <div class="l">9:41</div>
+        <div class="r">
+          <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 2.4C10.1 2.4 12 3.2 13.4 4.5" stroke="#000" stroke-width="1.6" stroke-linecap="round"/><path d="M5 6C5.8 5.2 6.9 4.7 8 4.7C9.1 4.7 10.2 5.2 11 6" stroke="#000" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8.6" r="1.4" fill="#000"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="1" width="21" height="10" rx="2.6" fill="none" stroke="#000" stroke-opacity=".4"/><rect x="2" y="2.5" width="17" height="7" rx="1.4"/><rect x="22.6" y="4" width="1.6" height="4" rx=".8" fill-opacity=".5"/></svg>
+        </div>
+      </div>
+      <div class="screen" id="screen"><!-- views injected --></div>
+      <div class="home-ind"></div>
+    </div>
+    <div class="caption">Interactive prototype · tap <b>Style me</b> on Home, or the sparkle on any product</div>
+  </div>
+
+<script>
+/* ---------------- assets ---------------- */
+function polo(c,scale){scale=scale||1;return `<svg width="${72*scale}" height="${70*scale}" viewBox="0 0 100 96"><path d="M34 14 L27 10 C20 16 13 20 8 24 L18 42 L28 37 L28 84 C28 88 31 90 35 90 L65 90 C69 90 72 88 72 84 L72 37 L82 42 L92 24 C87 20 80 16 73 10 L66 14 C56 24 44 24 34 14 Z" fill="${c}"/><path d="M43 12 L50 25 L57 12" fill="none" stroke="rgba(0,0,0,.16)" stroke-width="2.4" stroke-linecap="round"/></svg>`;}
+function trouser(c,scale){scale=scale||1;return `<svg width="${44*scale}" height="${44*scale}" viewBox="0 0 100 100"><path d="M30 10 L70 10 L73 22 L66 92 L55 92 L50 44 L45 92 L34 92 L27 22 Z" fill="${c}"/></svg>`;}
+function shoe(c,scale){scale=scale||1;return `<svg width="${52*scale}" height="${22*scale}" viewBox="0 0 100 44"><path d="M6 20 C6 13 17 11 27 14 L46 23 L46 34 C46 39 42 41 36 41 L12 41 C8 41 6 37 6 33 Z" fill="${c}"/><path d="M56 20 C56 13 67 11 77 14 L96 23 L96 34 C96 39 92 41 86 41 L62 41 C58 41 56 37 56 33 Z" fill="${c}"/></svg>`;}
+function overshirt(c,scale){scale=scale||1;return `<svg width="${72*scale}" height="${70*scale}" viewBox="0 0 100 96"><path d="M30 12 C22 18 14 22 8 26 L17 44 L27 39 L27 88 C27 90 29 92 31 92 L69 92 C71 92 73 90 73 88 L73 39 L83 44 L92 26 C86 22 78 18 70 12 L50 20 Z" fill="${c}"/><path d="M50 20 L50 90" stroke="rgba(0,0,0,.14)" stroke-width="2"/></svg>`;}
+
+function flatlay(look,scale){scale=scale||1;
+  const top = look.pieces[0].kind==='overshirt' ? overshirt(look.pieces[0].color,scale) : polo(look.pieces[0].color,scale);
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">${top}${trouser(look.pieces[1].color,scale)}${shoe(look.pieces[2].color,scale)}</div>`;
+}
+
+const ICON = {
+  home:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4l8 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h12v-9" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`,
+  shop:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 11H7L6 8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8a3 3 0 0 1 6 0" stroke="currentColor" stroke-width="1.7"/></svg>`,
+  spark:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3c.6 3.4 2 4.8 5.4 5.4C14 9 12.6 10.4 12 13.8 11.4 10.4 10 9 6.6 8.4 10 7.8 11.4 6.4 12 3Z" fill="currentColor"/><path d="M18.5 13c.3 1.5.9 2.1 2.4 2.4-1.5.3-2.1.9-2.4 2.4-.3-1.5-.9-2.1-2.4-2.4 1.5-.3 2.1-.9 2.4-2.4Z" fill="currentColor"/></svg>`,
+  sparkSm:`<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c.6 3.4 2 4.8 5.4 5.4C14 9 12.6 10.4 12 13.8 11.4 10.4 10 9 6.6 8.4 10 7.8 11.4 6.4 12 3Z"/><path d="M18.5 13c.3 1.5.9 2.1 2.4 2.4-1.5.3-2.1.9-2.4 2.4-.3-1.5-.9-2.1-2.4-2.4 1.5-.3 2.1-.9 2.4-2.4Z"/></svg>`,
+  bag:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 7h12l1 13H5L6 7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.7"/></svg>`,
+  sparkWhite:`<svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 3c.6 3.4 2 4.8 5.4 5.4C14 9 12.6 10.4 12 13.8 11.4 10.4 10 9 6.6 8.4 10 7.8 11.4 6.4 12 3Z" fill="#fff"/><path d="M18.3 13c.3 1.4.8 1.9 2.2 2.2-1.4.3-1.9.8-2.2 2.2-.3-1.4-.8-1.9-2.2-2.2 1.4-.3 1.9-.8 2.2-2.2Z" fill="#fff"/></svg>`,
+  chev:`<svg class="chev" width="9" height="16" viewBox="0 0 9 16" fill="none"><path d="M1 1l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  back:`<svg width="12" height="20" viewBox="0 0 12 20" fill="none"><path d="M10 1L2 10l8 9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  heart:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7-4.6-7-9.3C5 7.9 7 6.4 9 6.4c1.4 0 2.4.8 3 1.8.6-1 1.6-1.8 3-1.8 2 0 4 1.5 4 4.3C19 15.4 12 20 12 20Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>`,
+  tick:`<svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#0B6E4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  croc:`<svg width="150" height="150" viewBox="0 0 100 100" fill="#fff"><path d="M12 60c8-2 14-6 22-6 6 0 8 3 14 3 3 0 5-1 5-3 0-1-1-2-3-2 4-2 9-1 12 2 4 4 3 9-2 12-6 4-16 5-24 3-8-2-16-6-24-6-3 0-5 1-5-1s2-4 5-5Z"/><circle cx="30" cy="50" r="2.4"/></svg>`,
+  search:`<svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="#8A8A8E" stroke-width="1.8"/><path d="M13.5 13.5L18 18" stroke="#8A8A8E" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  filter:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`
+};
+
+/* ---------------- data ---------------- */
+const CATALOG = [
+  {n:"Original L.12.12 Polo", c:"#0B6E4F", p:95},
+  {n:"Slim Piqué Polo",        c:"#24324A", p:95},
+  {n:"Cotton Piqué Polo",      c:"#F2F2EE", p:90},
+  {n:"Textured Polo",          c:"#8FA9B8", p:110},
+  {n:"Ribbed Knit Polo",       c:"#6E2A34", p:120},
+  {n:"Signature Polo",         c:"#C8B89A", p:95},
+  {n:"Contrast Polo",          c:"#3A3F45", p:100},
+  {n:"Piqué Polo — Sand",      c:"#D8C3A0", p:90}
+];
+const POLO_PALETTE = ["#0B6E4F","#24324A","#F2F2EE","#6E2A34","#8FA9B8","#C8B89A"];
+
+function shortName(cat){return cat.replace('Original ','').replace(/ Polo.*/,'').replace(/Polo/,'').trim()+" polo";}
+function buildLooks(){
+  const anchored = state.anchor!==null;
+  const base=[
+    {name:"Weekend polish", pieces:[{kind:"polo",label:"Piqué polo",color:"#0B6E4F",p:95},{kind:"chino",label:"Slim chino",color:"#C8B89A",p:110},{kind:"sneaker",label:"Leather sneakers",color:"#EDEDE8",p:150}]},
+    {name:"Evening out", pieces:[{kind:"polo",label:"Knit polo",color:"#24324A",p:120},{kind:"trouser",label:"Tailored trouser",color:"#3A3F45",p:140},{kind:"loafer",label:"Suede loafers",color:"#6B4A2E",p:180}]},
+    {name:"Smart-casual Friday", pieces:[{kind:"overshirt",label:"Cotton overshirt",color:"#6B7A4E",p:160},{kind:"chino",label:"Slim chino",color:"#24324A",p:110},{kind:"loafer",label:"Leather loafers",color:"#3B2E26",p:170}]}
+  ];
+  if(anchored){ const it=CATALOG[state.anchor]; const top={kind:"polo",label:shortName(it.n),color:state.pdpColor||it.c,p:it.p}; base.forEach(b=> b.pieces[0]=Object.assign({},top)); }
+  const occ=state.occasion, fit=state.fit;
+  const whyA=["Your polo, dressed down for the weekend.","The same polo, sharpened for the evening.","Your polo, layered up for smart-casual."];
+  const whyB=[(occ? `Your ${occ.toLowerCase()} look${fit? ', '+fit.toLowerCase()+' fit':''}.` : "A relaxed, put-together default."),"Or — a step up for the evening.","Or — layered, for smart-casual."];
+  const whyS=["Our editors' pick to get you started.","A dressier alternative.","A layered alternative."];
+  const whys = anchored ? whyA : ((occ||fit||state.vibe) ? whyB : whyS);
+  return base.map((b,i)=>({id:i,name:b.name,why:whys[i],pieces:b.pieces}));
+}
+const state = {occasion:null, fit:null, vibe:null, anchor:null, pdpColor:null, pdpSize:"M", briefFrom:"home", looks:[], current:0, bag:null};
+function money(n){return "£"+n;}
+function total(look){return look.pieces.reduce((a,p)=>a+p.p,0);}
+
+/* ---------------- render helpers ---------------- */
+function reasonText(){
+  if(state.anchor!==null){ return `Built around the ${CATALOG[state.anchor].n.replace('Original ','').replace(' Polo',' polo').toLowerCase()} you were viewing.`; }
+  if(!state.occasion && !state.fit && !state.vibe) return "Our editors' pick to get you started.";
+  const bits=[]; if(state.occasion) bits.push(state.occasion.toLowerCase()); if(state.fit) bits.push(state.fit.toLowerCase()+" fit"); if(state.vibe) bits.push(state.vibe.toLowerCase());
+  return "Because you chose " + bits.join(" · ") + ".";
+}
+
+/* ---------------- screens ---------------- */
+function tabbar(active){
+  const t=(id,ic,lb)=>`<button class="tab ${active===id?'on':''}" onclick="tabTo('${id}')">${ICON[ic]}<span>${lb}</span></button>`;
+  return `<div class="tabbar">${t('home','home','Home')}${t('shop','shop','Shop')}${t('stylist','spark','Stylist')}${t('bag','bag','Bag')}</div>`;
+}
+
+function HOME(){
+  return `
+  <div class="view active" id="v-home">
+    <div class="content tabpad">
+      <div class="greet">Good afternoon</div>
+      <div class="h1">Shop</div>
+      <div class="searchbar">${ICON.search}<span>Search</span></div>
+
+      <div class="hero" onclick="tabTo('shop')">
+        <div class="croc">${ICON.croc}</div>
+        <div class="k">NEW IN · SUMMER</div>
+        <div class="t">The polo, in nine new shades.</div>
+      </div>
+
+      <div class="eyebrow">Your stylist</div>
+      <div class="ai-wrap">
+        <div class="ai-glow"></div>
+        <div class="ai-card" onclick="startBrief(null,'home')">
+          <div class="ai-badge">${ICON.sparkWhite}</div>
+          <div style="flex:1">
+            <div class="tt">Style me</div>
+            <div class="ss">Design with Lacoste Stylist</div>
+          </div>
+          ${ICON.chev}
+        </div>
+      </div>
+
+      <div class="eyebrow">Shop polos</div>
+      <div class="cats">
+        ${["New in","Piqué","Knit","Textured","Sand"].map((c,i)=>`
+          <div class="cat" onclick="tabTo('shop')">
+            <div class="sw">${polo(POLO_PALETTE[i%POLO_PALETTE.length],.9)}</div>
+            <div class="lb">${c}</div>
+          </div>`).join("")}
+      </div>
+      <div style="height:8px"></div>
+    </div>
+    ${tabbar('home')}
+  </div>`;
+}
+
+function BROWSE(){
+  return `
+  <div class="view active" id="v-browse">
+    <div class="nav solid"><button class="navbtn" onclick="tabTo('home')">${ICON.back}<span>Home</span></button><div class="title">Polos</div><button class="navbtn right icon">${ICON.filter}</button></div>
+    <div class="content tabpad" style="padding-top:92px">
+      <div class="filterline"><span>${CATALOG.length} items</span><span>Sort · Featured</span></div>
+      <div class="grid">
+        ${CATALOG.map((it,i)=>`
+          <div class="tile" onclick="openPDP(${i})">
+            <div class="img">${polo(it.c,1.25)}<button class="sparkle" onclick="event.stopPropagation(); studioFromTile(${i})" aria-label="Style this piece">${ICON.sparkSm}</button></div>
+            <div class="meta"><div class="nm">${it.n}</div><div class="pr">${money(it.p)}</div></div>
+          </div>`).join("")}
+      </div>
+      <div style="height:80px"></div>
+    </div>
+    ${tabbar('shop')}
+  </div>`;
+}
+
+function PDP(){
+  const it=CATALOG[state.anchor];
+  const sizes=["S","M","L","XL"];
+  return `
+  <div class="view active" id="v-pdp">
+    <div class="nav"><button class="navbtn" onclick="tabTo('shop')">${ICON.back}<span>Polos</span></button><span></span><span style="width:44px"></span></div>
+    <div class="content tabpad">
+      <div class="pdp-img">${polo(state.pdpColor||it.c,3)}<button class="sparkle lg" onclick="openStudio('pdp')" aria-label="Style this piece">${ICON.sparkSm}</button></div>
+      <div class="row"><div class="nm">${it.n}</div><div class="pr">${money(it.p)}</div></div>
+      <div class="muted">Signature piqué cotton with a ribbed collar. Cut for an easy, modern fit.</div>
+      <div class="swatches">
+        ${pdpSwatches(it).map(c=>`<div class="swatch ${c===(state.pdpColor||it.c)?'on':''}" style="background:${c}" onclick="setPdpColor('${c}')"></div>`).join("")}
+      </div>
+      <div class="sizes">
+        ${sizes.map(sz=>`<div class="size ${sz===state.pdpSize?'on':''}" onclick="setSize('${sz}')">${sz}</div>`).join("")}
+      </div>
+      <div style="padding:20px 20px 0"><button class="btn primary" onclick="quickAdd()">Add to Bag · ${money(it.p)}</button></div>
+
+      <div style="height:14px"></div>
+    </div>
+  </div>`;
+}
+
+function BRIEF(){
+  const grp=(label,name,opts)=>`
+    <div class="group"><div class="gl">${label}</div><div class="chips">
+      ${opts.map(o=>`<div class="chip ${state[name]===o?'on':''}" onclick="pick('${name}','${o}')">${o}</div>`).join("")}
+    </div></div>`;
+  return `
+  <div class="view active" id="v-brief">
+    <div class="nav"><button class="navbtn" onclick="closeBrief()">${ICON.back}<span>Back</span></button><span></span><span style="width:44px"></span></div>
+    <div class="content" style="padding-top:98px; padding-bottom:150px">
+      <div class="brief-h">Let's build your look.</div>
+      <div class="brief-sub">A few quick taps.</div>
+      ${grp("What's the occasion?","occasion",["Weekend","Dinner","Date night","Wedding guest","Work-smart"])}
+      ${grp("Preferred fit","fit",["Slim","Regular","Relaxed"])}
+      ${grp("Your vibe","vibe",["Classic","Minimal","Bold"])}
+    </div>
+    <div class="sticky">
+      <div class="privacy" style="margin:0 0 10px; align-items:center; justify-content:center; text-align:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex:0 0 auto"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z" stroke="#8A8A8E" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Nothing's saved unless you choose to.</span></div>
+      <button class="btn primary" onclick="startLooks()">Show my looks</button>
+      <button class="btn ghost" onclick="skipBrief()">Surprise me</button>
+    </div>
+  </div>`;
+}
+
+function LOOKS(){
+  const ctx = [];
+  if(state.occasion) ctx.push(state.occasion);
+  if(state.fit) ctx.push(state.fit+" fit");
+  if(state.anchor!==null) ctx.push("around your polo");
+  ctx.push("in your size");
+  const card=(look)=>`
+    <div class="lookcard" onclick="openLook(${look.id})">
+      <div class="top">
+        <div class="flatlay">${flatlay(look,.62)}</div>
+        <div class="info">
+          <div class="nm">${look.name}</div>
+          <div class="why">${look.why}</div>
+          <div class="pcs">${look.pieces.map(p=>p.label).join(" · ")}</div>
+        </div>
+      </div>
+      <div class="bar"><span class="tot">${money(total(look))}</span><span class="mini">View look ›</span></div>
+    </div>`;
+  return `
+  <div class="view active" id="v-looks">
+    <div class="nav solid"><button class="navbtn" onclick="render(state.briefFrom||'home')">${ICON.back}<span>Back</span></button><div class="title">Your Looks</div><button class="navbtn right" onclick="startBrief(state.anchor)" style="color:var(--green);font-weight:600">Adjust</button></div>
+    <div class="content" style="padding-top:100px; padding-bottom:24px">
+      <div class="ctx">${ctx.map((c,i)=>`<span class="pill ${i===ctx.length-1?'stock':''}">${c}</span>`).join("")}</div>
+      ${state.looks.map(card).join("")}
+      <div style="height:16px"></div>
+    </div>
+  </div>`;
+}
+
+function thumb(p,scale){scale=scale||.5; if(p.kind==='overshirt')return overshirt(p.color,scale); if(p.kind==='trouser'||p.kind==='chino')return trouser(p.color,scale*1.1); if(p.kind==='loafer'||p.kind==='sneaker')return shoe(p.color,scale*1.05); return polo(p.color,scale);}
+function studioFlat(o,scale){var parts=[]; if(o.layer)parts.push(overshirt(o.layer.color,scale)); parts.push(o.top.kind==='overshirt'?overshirt(o.top.color,scale):polo(o.top.color,scale)); if(o.bottom)parts.push(trouser(o.bottom.color,scale)); if(o.shoes)parts.push(shoe(o.shoes.color,scale)); return '<div style="display:flex;flex-direction:column;align-items:center;gap:0">'+parts.join('')+'</div>';}
+function STUDIO(){
+  const o=state.outfit;
+  const pieceRow=(slot,piece,locked)=> piece?`
+    <div class="piece">
+      <div class="th">${thumb(piece,.5)}</div>
+      <div style="flex:1"><div class="pn">${piece.label}${locked?' · your pick':''}</div><div class="pt">In size ${state.pdpSize} · In stock</div></div>
+      <div class="pp">${money(piece.p)}</div>
+      ${locked?'':`<button class="rm" onclick="removeSlot('${slot}')" aria-label="Remove">\u00d7</button>`}
+    </div>`:'';
+  const altRow=(slot,title)=>`
+    <div class="altgrp"><div class="rl">${title}</div>
+      <div class="altscroll">
+        ${ALTS[slot].map((a,i)=>`<div class="alt ${o[slot]&&o[slot].label===a.label?'on':''}" onclick="setSlot('${slot}',${i})"><div class="altimg">${thumb(a,.42)}</div><div class="altnm">${a.label}</div><div class="altpr">${money(a.p)}</div></div>`).join('')}
+      </div>
+    </div>`;
+  return `
+  <div class="view active" id="v-studio">
+    <div class="nav solid"><button class="navbtn" onclick="studioBack()">${ICON.back}<span>Back</span></button><div class="title">Your outfit</div><button class="navbtn right" onclick="restyle()" style="color:var(--green);font-weight:600">Restyle</button></div>
+    <div class="content" style="padding-top:100px; padding-bottom:150px">
+      <div class="stage-img">${studioFlat(o,1.1)}</div>
+      <div class="muted" style="margin-top:14px">${o.why}</div>
+      <div class="rl" style="margin:20px 20px 8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--sub)">In this outfit</div>
+      <div class="pieces">
+        ${pieceRow('top',o.top,true)}
+        ${pieceRow('layer',o.layer,false)}
+        ${pieceRow('bottom',o.bottom,false)}
+        ${pieceRow('shoes',o.shoes,false)}
+      </div>
+      <div class="sizerow"><span class="sl">Size</span>
+        <select class="sizesel" onchange="setSize(this.value)">
+          ${["S","M","L","XL"].map(z=>`<option ${z===state.pdpSize?'selected':''}>${z}</option>`).join("")}
+        </select>
+      </div>
+      ${altRow('bottom','Swap the bottoms')}
+      ${altRow('shoes','Swap the shoes')}
+      ${altRow('layer','Add a layer')}
+      <div class="totrow"><span class="l">Outfit total</span><span class="v">${money(studioTotal())}</span></div>
+    </div>
+    <div class="sticky"><button class="btn primary" onclick="addOutfit()">Add outfit to Bag \u00b7 ${money(studioTotal())}</button></div>
+  </div>`;
+}
+
+function BAG(){
+  const look=state.bag;
+  return `
+  <div class="view active" id="v-bag">
+    <div class="nav solid"><span style="width:44px"></span><div class="title">Bag</div><span style="width:44px"></span></div>
+    <div class="content tabpad" style="padding-top:100px">
+      ${look?`
+      <div class="bag-hero">
+        <div class="tick">${ICON.tick}</div>
+        <div class="t">Your look's in the Bag.</div>
+        <div class="s">“${look.name}” — ${look.pieces.length} pieces, all in your size.</div>
+      </div>
+      <div class="pieces" style="margin-top:6px">
+        ${look.pieces.map(p=>`
+          <div class="piece">
+            <div class="th">${p.kind==='overshirt'?overshirt(p.color,.5):(p.kind==='trouser'||p.kind==='chino')?trouser(p.color,.6):(p.kind==='loafer'||p.kind==='sneaker')?shoe(p.color,.55):polo(p.color,.5)}</div>
+            <div><div class="pn">${p.label}</div><div class="pt">In your size · In stock</div></div>
+            <div class="pp">${money(p.p)}</div>
+          </div>`).join("")}
+      </div>
+      <div class="totrow"><span class="l">Total</span><span class="v">${money(total(look))}</span></div>
+      <div class="actions">
+        <button class="btn primary" onclick="alert('Prototype — this is where checkout would begin.')">Checkout</button>
+        <button class="btn ghost" onclick="tabTo('home')">Keep shopping</button>
+      </div>`:`
+      <div class="bag-hero" style="padding-top:60px">
+        <div class="t">Your Bag is empty.</div>
+        <div class="s">Let the stylist put a look together for you.</div>
+      </div>
+      <div class="actions"><button class="btn tinted" onclick="startBrief(null,'home')">Style me</button></div>`}
+    </div>
+    ${tabbar('bag')}
+  </div>`;
+}
+
+/* ---------------- router ---------------- */
+const SCREENS={home:HOME, browse:BROWSE, pdp:PDP, brief:BRIEF, looks:LOOKS, studio:STUDIO, bag:BAG};
+function render(id){ document.getElementById('screen').innerHTML = SCREENS[id](); window._cur=id; }
+function reRenderPreserve(id){ var c=document.querySelector('.content'); var t=c?c.scrollTop:0; render(id); var c2=document.querySelector('.content'); if(c2)c2.scrollTop=t; }
+function pdpSwatches(it){ var arr=[it.c]; ["#0B6E4F","#24324A","#F2F2EE","#C8B89A"].forEach(c=>{ if(arr.indexOf(c)<0) arr.push(c); }); return arr.slice(0,4); }
+function setPdpColor(c){ state.pdpColor=c; reRenderPreserve('pdp'); }
+function setSize(sz){ state.pdpSize=sz; reRenderPreserve(window._cur||'pdp'); }
+function closeBrief(){ render(state.briefFrom||'home'); }
+
+function tabTo(tab){
+  if(tab==='home') render('home');
+  else if(tab==='shop') render('browse');
+  else if(tab==='stylist') startBrief(null,'home');
+  else if(tab==='bag') render('bag');
+  else if(tab==='looks') render('looks');
+}
+function openPDP(i){ state.anchor=i; state.pdpColor=CATALOG[i].c; state.pdpSize="M"; render('pdp'); var c=document.querySelector('.content'); if(c)c.scrollTop=0; }
+function startBrief(anchor,from){ state.anchor = anchor; if(from) state.briefFrom=from; render('brief'); }
+function pick(name,val){ state[name] = (state[name]===val? null : val); reRenderPreserve('brief'); }
+function skipBrief(){ state.occasion=null; state.fit=null; state.vibe=null; startLooks(state.anchor); }
+function startLooks(anchor){ if(anchor!==undefined) state.anchor=anchor; state.looks=buildLooks(); render('looks'); var c=document.querySelector('.content'); if(c)c.scrollTop=0; }
+function openLook(id){ state.current=id; openStudio('looks'); }
+
+/* studio (editable outfit) */
+const ALTS={
+  bottom:[{kind:'chino',label:'Slim chino',color:'#C8B89A',p:110},{kind:'trouser',label:'Tailored trouser',color:'#3A3F45',p:140},{kind:'chino',label:'Relaxed chino',color:'#24324A',p:110},{kind:'trouser',label:'Pleated trouser',color:'#6B7A4E',p:150}],
+  shoes:[{kind:'sneaker',label:'Leather sneakers',color:'#EDEDE8',p:150},{kind:'loafer',label:'Suede loafers',color:'#6B4A2E',p:180},{kind:'loafer',label:'Leather loafers',color:'#2A2A2A',p:170}],
+  layer:[{kind:'overshirt',label:'Cotton overshirt',color:'#6B7A4E',p:160},{kind:'overshirt',label:'Merino zip',color:'#24324A',p:190}]
+};
+function outfitFromLook(look){ let top,layer=null; if(look.pieces[0].kind==='overshirt'){layer=Object.assign({},look.pieces[0]); top={kind:'polo',label:'Pique polo',color:'#0B6E4F',p:95};} else top=Object.assign({},look.pieces[0]); return {top:top,layer:layer,bottom:Object.assign({},look.pieces[1]),shoes:Object.assign({},look.pieces[2]),why:look.why}; }
+function studioFromTile(i){ state.anchor=i; state.pdpColor=CATALOG[i].c; openStudio('tile'); }
+function openStudio(from){
+  state.studioFrom=from||'looks';
+  if(from==='browse'){ state.anchor=0; state.pdpColor=CATALOG[0].c; }
+  if(from==='browse'||from==='pdp'||from==='tile'){
+    const it=CATALOG[state.anchor];
+    state.outfit={ top:{kind:'polo',label:shortName(it.n),color:state.pdpColor||it.c,p:it.p}, layer:null, bottom:Object.assign({},ALTS.bottom[0]), shoes:Object.assign({},ALTS.shoes[0]), why:`Styled around your ${shortName(it.n).toLowerCase()} \u2014 pair it, swap it, make it yours.` };
+  } else { state.outfit=outfitFromLook(state.looks[state.current]); }
+  render('studio'); var c=document.querySelector('.content'); if(c)c.scrollTop=0;
+}
+function setSlot(slot,i){ state.outfit[slot]=Object.assign({},ALTS[slot][i]); reRenderPreserve('studio'); }
+function removeSlot(slot){ state.outfit[slot]=null; reRenderPreserve('studio'); }
+function restyle(){ var o=state.outfit; o.bottom=Object.assign({},ALTS.bottom[Math.floor(Math.random()*ALTS.bottom.length)]); o.shoes=Object.assign({},ALTS.shoes[Math.floor(Math.random()*ALTS.shoes.length)]); o.why="Restyled \u2014 a fresh pairing for your polo."; reRenderPreserve('studio'); }
+function studioTotal(){ var o=state.outfit,t=o.top.p; if(o.layer)t+=o.layer.p; if(o.bottom)t+=o.bottom.p; if(o.shoes)t+=o.shoes.p; return t; }
+function studioBack(){ render(state.studioFrom==='looks'?'looks':(state.studioFrom==='pdp'?'pdp':'browse')); }
+function addOutfit(){ var o=state.outfit; var pieces=[o.top]; if(o.layer)pieces.push(o.layer); if(o.bottom)pieces.push(o.bottom); if(o.shoes)pieces.push(o.shoes); state.bag={name:"Your outfit", pieces:pieces.map(x=>Object.assign({},x))}; render('bag'); var c=document.querySelector('.content'); if(c)c.scrollTop=0; }
+function quickAdd(){ const it=CATALOG[state.anchor]; state.bag={name:it.n, pieces:[{kind:"polo",label:it.n,color:state.pdpColor||it.c,p:it.p}]}; render('bag'); }
+
+/* boot */
+render('home');
+</script>
+</body>
+</html>
